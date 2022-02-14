@@ -1,0 +1,93 @@
+on:
+  push:
+    branches:
+      - development
+      - staging
+      - trying
+  pull_request:
+    types:
+      - opened
+
+name: CI
+
+env:
+  CARGO_HTTP_MULTIPLEXING: false
+  PROTOC: protoc
+  toolchain: nightly-2021-11-20
+
+jobs:
+  clippy:
+    name: clippy
+    runs-on: ubuntu-18.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.toolchain }}
+          components: clippy, rustfmt
+          override: true
+      - name: cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+      - name: Clippy check
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets -- -D warnings
+  build:
+    name: check nightly
+    runs-on: ubuntu-18.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.toolchain }}
+          components: clippy, rustfmt
+          override: true
+      - name: cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --release --all-targets
+  build-stable:
+    name: check stable
+    runs-on: ubuntu-18.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - name: rustup show
+        run: |
+          rustup show
+      - name: cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --release --all-targets
+  test:
+    name: test
+    needs: build
+    runs-on: ubuntu-18.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.toolchain }}
+      - name: cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --all-targets
