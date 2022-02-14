@@ -4,5 +4,5 @@ fn main() {
 
 #[test]
 fn temp() {
-    assert!(true)
+    assert_eq!(1, 1);
 }
